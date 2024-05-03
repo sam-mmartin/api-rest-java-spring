@@ -31,3 +31,4 @@ build/
 ### Local ###
 .vscode/
 .m2/
+db/
