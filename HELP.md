@@ -35,7 +35,7 @@ $ sudo chmod a+r /etc/apt/keyrings/docker.asc
 $ echo \
   "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
   $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
-  $ sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+    sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
 $ sudo apt-get update
 ```
@@ -50,6 +50,19 @@ Para verificar se o Docker Engine foi instalado com sucesso vamos executar o com
 
 ```bash
 $ sudo docker run hello-world
+```
+
+### Instalar Docker Compose
+
+```bash
+$ sudo apt-get update
+$ sudo apt-get install docker-compose-plugin
+```
+
+Para verificar se o docker compose foi instalado corretamente execute:
+
+```bash
+$ docker compose version
 ```
 
 Para executar o docker sem permissões `sudo`
