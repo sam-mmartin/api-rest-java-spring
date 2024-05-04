@@ -30,3 +30,14 @@ $ docker-compose up
 ```bash
 $ sudo chmod +x mvnw
 ```
+
+### Acessar manualmente o banco
+
+Para acessar o banco de dado após ter iniciado o container.
+
+```bash
+# Obtem o id do container
+$ docker ps
+$ docker exec -it <CONTAINER_ID> bash
+$ mongosh -u root -p <SENHA_DEFINIDA_DOCKER_COMPOSE> --authenticationDatabase admin
+```

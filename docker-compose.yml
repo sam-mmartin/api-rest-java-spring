@@ -1,10 +1,43 @@
 version: "2.27"
 
 services:
+  mongodb:
+    image: mongo
+    container_name: mongodb
+    expose:
+      - 27017
+    ports:
+      - 27017:27017
+    volumes:
+      - ./db/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+      - ./db/data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: personal
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: 123456
+    networks:
+      - mongo-compose-network
+
+  mongo-express:
+    image: mongo-express
+    container_name: mongo-express
+    ports:
+      - 8081:8081
+    environment:
+      ME_CONFIG_MONGODB_SERVER: mongodb
+      ME_CONFIG_BASICAUTH_USERNAME: sam
+      ME_CONFIG_BASICAUTH_PASSWORD: 123456
+      ME_CONFIG_MONGODB_PORT: 27017
+      ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      ME_CONFIG_MONGODB_ADMINPASSWORD: 123456
+    networks:
+      - mongo-compose-network
+
   app:
     build:
       context: ./
       dockerfile: Dockerfile
+    container_name: spring-app
     volumes:
       - ./:/app
       - ./.m2:/root/.m2
@@ -14,34 +47,9 @@ services:
       - 8080:8080
       - 35729:35729
       - 5005:5005
-
-  mongo-express:
-    image: mongo-express
-    ports:
-      - 8081:8081
-    environment:
-      ME_CONFIG_MONGODB_SERVER: mongo-server
-      ME_CONFIG_BASICAUTH_USERNAME: sam
-      ME_CONFIG_BASICAUTH_PASSWORD: 123456
-      ME_CONFIG_MONGODB_PORT: 27017
-      ME_CONFIG_MONGODB_ADMINUSERNAME: root
-      ME_CONFIG_MONGODB_ADMINPASSWORD: 123456
-    links:
-      - mongo
-    networks:
-      - mongo-compose-network
-
-  mongo:
-    image: mongo
-    container_name: mongo-server
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: 123456
-    ports:
-      - 27017:27017
-    volumes:
-      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
-      - ./db:/data/db
+    depends_on:
+      mongodb:
+        condition: service_started
     networks:
       - mongo-compose-network
 

@@ -140,10 +140,43 @@ done
 version: "2.27"
 
 services:
+  mongodb:
+    image: mongo
+    container_name: mongodb
+    expose:
+      - 27017
+    ports:
+      - 27017:27017
+    volumes:
+      - ./db/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+      - ./db/data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: personal
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: 123456
+    networks:
+      - mongo-compose-network
+
+  mongo-express:
+    image: mongo-express
+    container_name: mongo-express
+    ports:
+      - 8081:8081
+    environment:
+      ME_CONFIG_MONGODB_SERVER: mongodb
+      ME_CONFIG_BASICAUTH_USERNAME: sam
+      ME_CONFIG_BASICAUTH_PASSWORD: 123456
+      ME_CONFIG_MONGODB_PORT: 27017
+      ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      ME_CONFIG_MONGODB_ADMINPASSWORD: 123456
+    networks:
+      - mongo-compose-network
+
   app:
     build:
       context: ./
       dockerfile: Dockerfile
+    container_name: spring-app
     volumes:
       - ./:/app
       - ./.m2:/root/.m2
@@ -153,16 +186,67 @@ services:
       - 8080:8080
       - 35729:35729
       - 5005:5005
+    depends_on:
+      mongodb:
+        condition: service_started
+    networks:
+      - mongo-compose-network
+
+networks:
+    mongo-compose-network:
+      driver: bridge
 ```
+
+### mongodb
+
+> - **Image**: utiliza a imagem oficial do MongoDB
+>
+> - **Ports**: mapeia a porta 27017 do container para a porta 27017 do host
+>
+> - **Environment**: configuração das variaveis de ambiente para usuário e senha para acesso ao banco
+>
+> - **Volumes**: declara um volume, garantindo armazenamento persistente para dados do MongoDB
+
+### mongo-express
+
+> - **Image**: utiliza a imagem oficial do MongoDB Express
+>
+> - **Ports**: mapeia a porta 8081 do container para a porta 8081 do host
+>
+> - **Environment**: especifica o nome de usuário do administrador, a senha e o nome do host do servidor MongoDB
+
+### app
 
 O diretório de código-fonte local é montado dentro do container no caminho `/app`.
 <br> Montamos o diretório `.m2` de dentro do container para está disponível como um diretório local em nosso sistema de arquivos local. Isso permitirá que destruamos o container e recrie sem grandes problemas.
 
+- A inicialização do container fica condicionada a inicialização do container com o servidor MongoDB
 - A aplicação irá executar na porta 8080
 - Porta 35729 habilita o plugin livereload a monitorar as alterações no código
 - Porta 5005 torna o debug disponível pela IDE
 
-Para criar a imagem base executamos
+Na raiz do projeto crie uma pasta nomeada `db` para podermos guardar o script de criação do banco de dados e usuário para acesso.
+A camada de volumes do docker compose no serviço mongodb é responsável por copiar todo o conteúdo da pasta **db** para a pasta **docker-entrypoint-initdb.d** dentro do container.
+
+```js
+print("Started Adding the Users.");
+
+db.getSiblingDB("<DATABASE>");
+db.createUser({
+  user: "<USER>",
+  pwd: "<PASSWORD>",
+  roles: [
+    {
+      role: "readWrite",
+      db: "<DATABASE>",
+    },
+  ],
+});
+
+db.createCollection("user");
+```
+
+Após os passos executados acima estamos pronto para rodarmos os containers com as aplicações. É necessário contruir as imagens antes de executar os containers.
 
 ```bash
 $ docker-compose build
@@ -172,6 +256,15 @@ e para executar o container
 
 ```bash
 $ docker-compose up
+```
+
+Se quiser rodar os containers em segundo plano e verificar os logs das aplicações
+
+```bash
+$ docker-compose up -d
+# Obtem o id do container
+$ docker ps
+$ docker logs --tail 1000 -f <CONTAINER_ID>
 ```
 
 Para destruir os containers criados
